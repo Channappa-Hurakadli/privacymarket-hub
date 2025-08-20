@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom';
-import { Shield, Database, Target, Zap, ArrowRight, CheckCircle } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { Shield, Database, Target, ArrowRight, CheckCircle } from 'lucide-react';
 import heroImage from '../assets/hero-image.jpg';
+import { RootState } from '../store';
 
 const Home = () => {
+  const { isAuthenticated } = useSelector((state: RootState) => state.user);
+  
   const features = [
     {
       icon: Shield,
@@ -18,11 +22,6 @@ const Home = () => {
       icon: Target,
       title: 'Smart Segmentation',
       description: 'AI-powered audience segmentation provides actionable insights without compromising individual privacy.'
-    },
-    {
-      icon: Zap,
-      title: 'API-Ready',
-      description: 'Seamless integration with your existing marketing stack through our robust and secure API infrastructure.'
     }
   ];
 
@@ -87,7 +86,7 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
               <div key={index} className="card-feature text-center group">
                 <div className="w-16 h-16 bg-gradient-to-r from-primary to-secondary rounded-xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
@@ -122,21 +121,23 @@ const Home = () => {
                 ))}
               </div>
             </div>
-            <div className="card-corporate p-8">
-              <h3 className="text-2xl font-semibold mb-4">Ready to Get Started?</h3>
-              <p className="text-muted-foreground mb-6">
-                Whether you're looking to monetize your data or gain valuable insights, 
-                MarketSafe AI provides the secure platform you need.
-              </p>
-              <div className="space-y-3">
-                <Link to="/register" className="btn-hero w-full text-center block">
-                  Create Account
-                </Link>
-                <Link to="/login" className="btn-outline w-full text-center block">
-                  Sign In
-                </Link>
+            {!isAuthenticated && (
+              <div className="card-corporate p-8">
+                <h3 className="text-2xl font-semibold mb-4">Ready to Get Started?</h3>
+                <p className="text-muted-foreground mb-6">
+                  Whether you're looking to monetize your data or gain valuable insights, 
+                  MarketSafe AI provides the secure platform you need.
+                </p>
+                <div className="space-y-3">
+                  <Link to="/register" className="btn-hero w-full text-center block">
+                    Create Account
+                  </Link>
+                  <Link to="/login" className="btn-outline w-full text-center block">
+                    Sign In
+                  </Link>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
