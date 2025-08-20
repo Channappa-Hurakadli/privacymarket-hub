@@ -2,41 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* MarketSafe AI Corporate Design System 
+Corporate violet/purple gradient theme with aqua accents
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 224 15% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 15% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 224 15% 12%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Corporate Violet/Purple Primary */
+    --primary: 258 89% 28%;  /* #6A11CB */
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 258 89% 35%;
+    --primary-dark: 258 89% 22%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary Blues */
+    --secondary: 213 94% 68%;  /* #2575FC */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Neutral Grays */
+    --muted: 220 13% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Aqua Accent */
+    --accent: 158 64% 52%;  /* #20E3B2 */
+    --accent-foreground: 224 15% 12%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 13% 91%;
+    --input: 220 13% 94%;
+    --ring: 258 89% 28%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Corporate Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(258 89% 28%), hsl(213 94% 68%));
+    --gradient-hero: linear-gradient(135deg, hsl(258 89% 28%) 0%, hsl(213 94% 68%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(220 13% 98%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(158 64% 52%) 0%, hsl(158 64% 42%) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 2px 8px hsl(220 13% 91% / 0.6);
+    --shadow-medium: 0 4px 16px hsl(220 13% 91% / 0.8);
+    --shadow-strong: 0 8px 32px hsl(258 89% 28% / 0.15);
+    --shadow-glow: 0 0 24px hsl(258 89% 28% / 0.2);
+
+    /* Corporate Spacing */
+    --space-section: 5rem;
+    --space-card: 2rem;
 
     --sidebar-background: 0 0% 98%;
 
@@ -56,33 +79,48 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 224 15% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 224 15% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 224 15% 10%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Dark mode primary stays vibrant */
+    --primary: 258 89% 35%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 258 89% 42%;
+    --primary-dark: 258 89% 28%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 213 94% 75%;
+    --secondary-foreground: 224 15% 8%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 224 15% 15%;
+    --muted-foreground: 220 9% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 158 64% 52%;
+    --accent-foreground: 224 15% 8%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 224 15% 18%;
+    --input: 224 15% 15%;
+    --ring: 258 89% 35%;
+
+    /* Dark mode gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(258 89% 35%), hsl(213 94% 75%));
+    --gradient-hero: linear-gradient(135deg, hsl(258 89% 35%) 0%, hsl(213 94% 75%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(224 15% 10%) 0%, hsl(224 15% 12%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(158 64% 52%) 0%, hsl(158 64% 42%) 100%);
+
+    /* Dark shadows */
+    --shadow-soft: 0 2px 8px hsl(224 15% 5% / 0.8);
+    --shadow-medium: 0 4px 16px hsl(224 15% 5% / 0.9);
+    --shadow-strong: 0 8px 32px hsl(258 89% 15% / 0.3);
+    --shadow-glow: 0 0 24px hsl(258 89% 35% / 0.3);
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -100,6 +138,74 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-inter antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Corporate Button Variants */
+  .btn-hero {
+    @apply bg-gradient-to-r from-primary to-secondary text-primary-foreground px-8 py-4 rounded-xl font-semibold text-lg shadow-[var(--shadow-strong)] hover:shadow-[var(--shadow-glow)] transition-all duration-300 hover:scale-105;
+  }
+
+  .btn-accent {
+    @apply bg-gradient-to-r from-accent to-accent/90 text-accent-foreground px-6 py-3 rounded-lg font-medium shadow-[var(--shadow-medium)] hover:shadow-[var(--shadow-strong)] transition-all duration-300;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary bg-transparent px-6 py-3 rounded-lg font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-300;
+  }
+
+  /* Corporate Cards */
+  .card-corporate {
+    @apply bg-gradient-to-br from-card to-muted/30 border border-border rounded-xl p-6 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-medium)] transition-all duration-300;
+  }
+
+  .card-feature {
+    @apply bg-gradient-to-br from-card to-muted/50 border border-border rounded-xl p-8 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-medium)] transition-all duration-300 hover:scale-105;
+  }
+
+  .card-dataset {
+    @apply bg-gradient-to-br from-card to-muted/30 border border-border rounded-lg p-6 shadow-[var(--shadow-soft)] hover:shadow-[var(--shadow-strong)] transition-all duration-300 hover:scale-[1.02] cursor-pointer;
+  }
+
+  /* Hero Section */
+  .hero-gradient {
+    @apply bg-gradient-to-br from-primary via-primary-light to-secondary;
+  }
+
+  /* Animations */
+  .fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .slide-up {
+    animation: slideUp 0.8s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
