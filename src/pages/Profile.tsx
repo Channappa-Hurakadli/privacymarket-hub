@@ -168,14 +168,14 @@ const Profile = () => {
                 <div className="flex items-center justify-between"><span className="text-muted-foreground">Data Privacy</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Protected</span></div>
               </div>
             </div>
-            <div className="card-corporate">
+            {/* <div className="card-corporate">
               <h3 className="text-lg font-semibold text-foreground mb-4">Security</h3>
               <div className="space-y-3">
                 <button className="btn-outline w-full text-center">Change Password</button>
                 <button className="btn-outline w-full text-center">Two-Factor Auth</button>
                 <button className="btn-outline w-full text-center">Privacy Settings</button>
               </div>
-            </div>
+            </div> */}
             {currentUser.role === 'seller' && (
               <div className="card-corporate">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Seller Stats</h3>

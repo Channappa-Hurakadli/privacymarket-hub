@@ -5,7 +5,7 @@ import { RootState } from '../store';
 import api from '../services/api';
 import { useToast } from '../hooks/use-toast';
 
-// Define the type for the data we expect from the backend, matching your original mock data structure
+// Define the type for the data we expect from the backend
 interface Seller {
   _id: string;
   name: string;
@@ -20,8 +20,13 @@ interface MarketplaceDataset {
   category: string;
   views: number;
   dataPoints: number;
-  featured: boolean;
-  insights: string;
+  featured: boolean; // This can be a future backend feature
+  insights: string; // This can be a future backend feature
+}
+
+interface PreviewData {
+  headers: string[];
+  rows: Record<string, string>[];
 }
 
 const categories = ['All', 'E-commerce', 'Social Media', 'Mobile Apps', 'Retail', 'Healthcare', 'Finance', 'Travel', 'Education'];
@@ -34,21 +39,20 @@ const Marketplace = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('featured');
+  const [sortBy, setSortBy] = useState('newest');
   const [selectedDataset, setSelectedDataset] = useState<MarketplaceDataset | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   useEffect(() => {
     const fetchMarketplaceData = async () => {
       setIsLoading(true);
       try {
         const response = await api.get('/datasets/marketplace');
-        // Add placeholder fields to the fetched data to match the original UI's needs for sorting/display
+        // Add placeholder fields for UI elements not yet in backend
         const datasetsWithPlaceholders = response.data.map((d: any) => ({
           ...d,
-          category: d.category || 'E-commerce', // Use real category, fallback to default
-          views: d.views || Math.floor(Math.random() * 1500),
-          dataPoints: d.dataPoints || Math.floor(Math.random() * 50000) + 10000,
-          featured: d.featured || Math.random() > 0.5,
+          featured: d.featured || Math.random() > 0.7,
           insights: d.insights || 'Valuable insights based on this anonymized dataset.'
         }));
         setAllDatasets(datasetsWithPlaceholders);
@@ -65,7 +69,37 @@ const Marketplace = () => {
     fetchMarketplaceData();
   }, [toast]);
 
-  // Your original filtering and sorting logic - no changes needed
+  // Requirement #2: Fetch preview data when a dataset is clicked
+  const handleDatasetClick = async (dataset: MarketplaceDataset) => {
+    setSelectedDataset(dataset);
+    setIsPreviewLoading(true);
+    setPreviewData(null);
+    try {
+      const response = await api.get(`/datasets/${dataset._id}/preview`);
+      setPreviewData(response.data);
+    } catch (error) {
+      toast({ title: "Error", description: "Could not load dataset preview.", variant: "destructive" });
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handlePurchase = async (dataset: MarketplaceDataset) => {
+    try {
+      await api.post(`/purchases/dataset/${dataset._id}`);
+      toast({ title: "Purchase Successful!", description: `"${dataset.title}" has been added to your dashboard.` });
+      setSelectedDataset(null);
+      // Requirement #4: Remove the purchased dataset from the local state
+      setAllDatasets(allDatasets.filter(d => d._id !== dataset._id));
+    } catch (error: any) {
+      toast({
+        title: "Purchase Failed",
+        description: error.response?.data?.message || "An error occurred during purchase.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredDatasets = allDatasets
     .filter(dataset => {
       const matchesSearch = dataset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -75,31 +109,14 @@ const Marketplace = () => {
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'featured':
-          // Using 'as any' because boolean subtraction is a quick way to sort
-          return (b.featured as any) - (a.featured as any);
-        case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        case 'popular':
-          return b.views - a.views;
-        case 'price-low':
-          return a.price - b.price;
-        case 'price-high':
-          return b.price - a.price;
-        default:
-          return 0;
+        case 'featured': return (b.featured as any) - (a.featured as any);
+        case 'newest': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'popular': return b.views - a.views;
+        case 'price-low': return a.price - b.price;
+        case 'price-high': return b.price - a.price;
+        default: return 0;
       }
     });
-
-  const handleDatasetClick = (dataset: MarketplaceDataset) => {
-    setSelectedDataset(dataset);
-  };
-
-  const handlePurchase = (dataset: MarketplaceDataset) => {
-    // This can be expanded with a real API call later
-    alert(`Dataset "${dataset.title}" purchased for $${dataset.price.toLocaleString()}! Check your dashboard for analytics.`);
-    setSelectedDataset(null);
-  };
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -178,7 +195,7 @@ const Marketplace = () => {
           </div>
         )}
 
-        {/* Dataset Detail Modal - Unchanged */}
+        {/* Dataset Detail Modal - Now with live preview */}
         {selectedDataset && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="card-corporate max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -206,8 +223,25 @@ const Marketplace = () => {
                   <div><h4 className="font-medium text-foreground mb-1">Category</h4><p className="text-muted-foreground">{selectedDataset.category}</p></div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2 flex items-center"><TrendingUp className="w-5 h-5 mr-2 text-accent" />AI-Generated Insights</h3>
-                  <div className="bg-accent/5 border border-accent/20 rounded-lg p-4"><p className="text-foreground">{selectedDataset.insights}</p></div>
+                  <h3 className="font-semibold text-foreground mb-2 flex items-center"><TrendingUp className="w-5 h-5 mr-2 text-accent" />Dataset Preview</h3>
+                  <div className="bg-accent/5 border border-accent/20 rounded-lg p-4">
+                    {isPreviewLoading ? <p>Loading preview...</p> : previewData && previewData.rows.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                          <thead className="bg-muted/50">
+                            <tr>{previewData.headers.map(h => <th key={h} className="p-2 text-left font-medium">{h}</th>)}</tr>
+                          </thead>
+                          <tbody>
+                            {previewData.rows.map((row, i) => (
+                              <tr key={i} className="border-t border-border">
+                                {previewData.headers.map(h => <td key={h} className="p-2">{row[h]}</td>)}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : <p className="text-foreground">No preview available for this dataset.</p>}
+                  </div>
                 </div>
                 <div className="border-t border-border pt-6">
                   <div className="flex items-center justify-between mb-4">

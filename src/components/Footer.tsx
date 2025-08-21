@@ -27,7 +27,7 @@ const Footer = () => {
               <li><a href="#" className="hover:text-primary transition-colors">Privacy Engine</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Data Sanitization</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Segmentation</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">API Access</a></li>
+              {/* <li><a href="#" className="hover:text-primary transition-colors">API Access</a></li> */}
             </ul>
           </div>
 
@@ -52,11 +52,11 @@ const Footer = () => {
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>+1 (555) 123-4567</span>
+                <span>+91 6363128894</span>
               </li>
               <li className="flex items-center space-x-2">
                 <MapPin className="w-4 h-4" />
-                <span>San Francisco, CA</span>
+                <span>Bengaluru, Karnataka</span>
               </li>
             </ul>
           </div>

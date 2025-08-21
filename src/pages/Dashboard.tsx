@@ -6,7 +6,7 @@ import { Database, TrendingUp, Users, Plus, Eye, Calendar, DollarSign, ToggleLef
 import api from '../services/api';
 import { useToast } from '../hooks/use-toast';
 
-// Type for a seller's own uploaded datasets
+// Interfaces for data shapes
 interface MyDataset {
   _id: string;
   title: string;
@@ -14,23 +14,24 @@ interface MyDataset {
   price: number;
   isListed: boolean;
   createdAt: string;
-  category: string; // Add category to match original mock data
+  category: string;
+  views: number;
 }
-
-// Type for a buyer's purchased datasets
 interface PurchasedDataset {
-  _id: string; // This is the purchase ID
+  _id: string;
   dataset: {
-    _id: string; // This is the dataset ID
+    _id: string;
     title: string;
     description: string;
     originalFileName: string;
     category: string;
-    seller: {
-      name: string;
-    }
+    seller: { name: string; };
   };
   purchaseDate: string;
+}
+interface PreviewData {
+  headers: string[];
+  rows: Record<string, string>[];
 }
 
 const Dashboard = () => {
@@ -39,6 +40,10 @@ const Dashboard = () => {
   const [purchasedDatasets, setPurchasedDatasets] = useState<PurchasedDataset[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  const [selectedPurchase, setSelectedPurchase] = useState<PurchasedDataset | null>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -92,6 +97,20 @@ const Dashboard = () => {
     }
   };
 
+  const handleViewClick = async (purchase: PurchasedDataset) => {
+    setSelectedPurchase(purchase);
+    setIsPreviewLoading(true);
+    setPreviewData(null);
+    try {
+      const response = await api.get(`/datasets/${purchase.dataset._id}/preview`);
+      setPreviewData(response.data);
+    } catch (error) {
+      toast({ title: "Error", description: "Could not load dataset preview.", variant: "destructive" });
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -135,9 +154,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Total Revenue</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      ${isLoading ? '...' : '0'} {/* Placeholder for revenue */}
-                    </p>
+                    <p className="text-2xl font-bold text-foreground">${'0'}</p>
                   </div>
                   <DollarSign className="w-8 h-8 text-accent" />
                 </div>
@@ -146,9 +163,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Total Views</p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {isLoading ? '...' : '0'} {/* Placeholder for views */}
-                    </p>
+                    <p className="text-2xl font-bold text-foreground">{isLoading ? '...' : myDatasets.reduce((sum, ds) => sum + (ds.views || 0), 0)}</p>
                   </div>
                   <Eye className="w-8 h-8 text-secondary" />
                 </div>
@@ -174,24 +189,24 @@ const Dashboard = () => {
                   <Database className="w-8 h-8 text-primary" />
                 </div>
               </div>
-              <div className="card-corporate">
+              {/* <div className="card-corporate">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Insights Generated</p>
-                    <p className="text-2xl font-bold text-foreground">127</p> {/* Placeholder */}
+                    <p className="text-2xl font-bold text-foreground">127</p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-accent" />
                 </div>
-              </div>
-              <div className="card-corporate">
+              </div> */}
+              {/* <div className="card-corporate">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Categories Explored</p>
-                    <p className="text-2xl font-bold text-foreground">8</p> {/* Placeholder */}
+                    <p className="text-2xl font-bold text-foreground">8</p>
                   </div>
                   <Users className="w-8 h-8 text-secondary" />
                 </div>
-              </div>
+              </div> */}
               <div className="card-corporate">
                 <div className="flex items-center justify-between">
                   <div>
@@ -219,56 +234,51 @@ const Dashboard = () => {
                 </Link>
               )}
             </div>
-
             <div className="space-y-4">
-              {isLoading ? <p>Loading your data...</p> : (
-                isSeller ? (
-                  myDatasets.length > 0 ? myDatasets.map((dataset) => (
-                    <div key={dataset._id} className="card-dataset">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-foreground mb-2">{dataset.title}</h3>
-                          <p className="text-muted-foreground mb-3">{dataset.description}</p>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{dataset.category}</span>
-                            <span>{0} views</span> {/* Placeholder */}
-                            <span>${dataset.price}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-muted-foreground">Uploaded</p>
-                          <p className="font-medium">{new Date(dataset.createdAt).toLocaleDateString()}</p>
-                           <button onClick={() => handleToggleListing(dataset)} className="flex items-center text-sm font-medium text-primary hover:underline mt-2">
-                              {dataset.isListed ? <ToggleRight className="w-5 h-5 mr-1 text-green-500"/> : <ToggleLeft className="w-5 h-5 mr-1 text-gray-400"/>}
-                              {dataset.isListed ? 'Listed' : 'Unlisted'}
-                            </button>
+              {isLoading ? <p>Loading your data...</p> : isSeller ? (
+                myDatasets.length > 0 ? myDatasets.map((dataset) => (
+                  <div key={dataset._id} className="card-dataset">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">{dataset.title}</h3>
+                        <p className="text-muted-foreground mb-3">{dataset.description}</p>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{dataset.category}</span>
+                          <span>{dataset.views} views</span>
+                          <span>${dataset.price} earned</span>
                         </div>
                       </div>
-                    </div>
-                  )) : (
-                    <div className="text-center py-12"><Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium text-foreground mb-2">No datasets uploaded</h3><p className="text-muted-foreground"><Link to="/upload" className="text-primary hover:underline">Upload your first dataset</Link> to get started.</p></div>
-                  )
-                ) : (
-                  purchasedDatasets.length > 0 ? purchasedDatasets.map((purchase) => (
-                    <div key={purchase._id} className="card-dataset">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-foreground mb-2">{purchase.dataset.title}</h3>
-                          <p className="text-muted-foreground mb-2">{purchase.dataset.description}</p>
-                          <p className="text-sm text-muted-foreground mb-3">by {purchase.dataset.seller.name}</p>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{purchase.dataset.category}</span>
-                            <span>Purchased {new Date(purchase.purchaseDate).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                         <div className="text-right flex flex-col items-end space-y-2">
-                            {/* <button className="btn-outline inline-flex items-center text-sm"><Eye className="w-4 h-4 mr-2" /> View</button> */}
-                            <button onClick={() => handleDownload(purchase.dataset._id, purchase.dataset.originalFileName)} className="btn-accent inline-flex items-center text-sm"><Download className="w-4 h-4 mr-2" /> Export</button>
-                        </div>
+                      <div className="text-right">
+                        <p className="text-sm text-muted-foreground">Uploaded</p>
+                        <p className="font-medium">{new Date(dataset.createdAt).toLocaleDateString()}</p>
+                        <button onClick={() => handleToggleListing(dataset)} className="flex items-center text-sm font-medium text-primary hover:underline mt-2 ml-auto">
+                          {dataset.isListed ? <ToggleRight className="w-5 h-5 mr-1 text-green-500"/> : <ToggleLeft className="w-5 h-5 mr-1 text-gray-400"/>}
+                          {dataset.isListed ? 'Listed' : 'Unlisted'}
+                        </button>
                       </div>
                     </div>
-                  )) : <p>You have not purchased any datasets yet.</p>
-                )
+                  </div>
+                )) : (<div className="text-center py-12"><Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium text-foreground mb-2">No datasets uploaded</h3><p className="text-muted-foreground"><Link to="/upload" className="text-primary hover:underline">Upload your first dataset</Link> to get started.</p></div>)
+              ) : (
+                purchasedDatasets.length > 0 ? purchasedDatasets.map((purchase) => (
+                  <div key={purchase._id} className="card-dataset">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">{purchase.dataset.title}</h3>
+                        <p className="text-muted-foreground mb-2">{purchase.dataset.description}</p>
+                        <p className="text-sm text-muted-foreground mb-3">by {purchase.dataset.seller.name}</p>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{purchase.dataset.category}</span>
+                          <span>Purchased {new Date(purchase.purchaseDate).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      <div className="text-right flex flex-col items-end space-y-2">
+                        <button onClick={() => handleViewClick(purchase)} className="btn-outline inline-flex items-center text-sm"><Eye className="w-4 h-4 mr-2" /> View</button>
+                        <button onClick={() => handleDownload(purchase.dataset._id, purchase.dataset.originalFileName)} className="btn-accent inline-flex items-center text-sm"><Download className="w-4 h-4 mr-2" /> Export</button>
+                      </div>
+                    </div>
+                  </div>
+                )) : (<p>You have not purchased any datasets yet.</p>)
               )}
             </div>
           </div>
@@ -280,9 +290,9 @@ const Dashboard = () => {
                 <h3 className="text-lg font-semibold text-foreground mb-4">Latest Insights</h3>
                 <div className="space-y-4">
                   {purchasedDatasets.slice(0, 2).map((purchase) => (
-                    <div key={purchase._id} className="p-4 bg-muted/30 rounded-lg">
+                    <div key={purchase._id} className="p-4 bg-muted/30 rounded-lg hover:bg-muted/50 cursor-pointer" onClick={() => handleViewClick(purchase)}>
                       <h4 className="font-medium text-foreground mb-2">{purchase.dataset.title}</h4>
-                      <p className="text-sm text-muted-foreground">{/* Placeholder for insights */}</p>
+                      <p className="text-sm text-muted-foreground">Click to view insights...</p>
                     </div>
                   ))}
                 </div>
@@ -306,6 +316,37 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        
+        {/* Preview Modal */}
+        {selectedPurchase && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedPurchase(null)}>
+            <div className="card-corporate max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">{selectedPurchase.dataset.title}</h2>
+                <button onClick={() => setSelectedPurchase(null)} className="p-2 hover:bg-muted rounded-lg transition-colors">X</button>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">Dataset Preview</h3>
+                {isPreviewLoading ? <p>Loading preview...</p> : previewData && previewData.rows.length > 0 ? (
+                  <div className="overflow-x-auto border border-border rounded-lg">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-muted/50">
+                        <tr>{previewData.headers.map(h => <th key={h} className="p-2 text-left font-medium">{h}</th>)}</tr>
+                      </thead>
+                      <tbody>
+                        {previewData.rows.map((row, i) => (
+                          <tr key={i} className="border-t border-border">
+                            {previewData.headers.map(h => <td key={h} className="p-2">{row[h]}</td>)}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : <p>No preview available.</p>}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
