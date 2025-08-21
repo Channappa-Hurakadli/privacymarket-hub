@@ -54,22 +54,23 @@ const Register = () => {
     dispatch(loginStart());
     
     try {
-      // 1. Call the API
+      // 1. Call the API without the subscription object
       const userFromApi = await registerUser({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role.toLowerCase() as 'seller' | 'buyer'
+        role: formData.role.toLowerCase() as 'seller' | 'buyer',
       });
 
       // 2. Transform the API response into the format our app uses
       const appUser: AppUser = {
-        id: userFromApi._id, // Map _id to id
+        id: userFromApi._id,
         name: userFromApi.name,
         email: userFromApi.email,
         role: userFromApi.role,
+        subscription: userFromApi.subscription, // This comes from the backend by default
         token: userFromApi.token,
-        joinedDate: new Date().toISOString(), // Add the missing property
+        joinedDate: new Date().toISOString(),
       };
 
       // 3. Dispatch the correctly formatted user to Redux and localStorage
@@ -80,7 +81,14 @@ const Register = () => {
         title: "Welcome to MarketSafe AI!",
         description: `Account created successfully as ${appUser.role}`,
       });
-      navigate('/dashboard');
+      
+      // Redirect sellers to the subscription page after registration
+      if (appUser.role === 'seller') {
+        navigate('/subscribe');
+      } else {
+        navigate('/dashboard');
+      }
+
     } catch (error) {
       dispatch(loginFailure());
       toast({

@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { RootState } from '../store';
 import { loginStart, loginSuccess, loginFailure } from '../store/userSlice';
-import { loginUser, storeUser, AppUser } from '../utils/auth'; // Correctly import AppUser
+import { loginUser, storeUser, AppUser } from '../utils/auth';
 import { useToast } from '../hooks/use-toast';
 
 const Login = () => {
@@ -46,8 +46,10 @@ const Login = () => {
         name: userFromApi.name,
         email: userFromApi.email,
         role: userFromApi.role,
+        // FIX: Pass the entire subscription object from the API
+        subscription: userFromApi.subscription,
         token: userFromApi.token,
-        joinedDate: new Date().toISOString(), // Assuming joinedDate comes from frontend upon login
+        joinedDate: new Date().toISOString(),
       };
 
       // 3. Dispatch the correctly formatted user to Redux and localStorage
@@ -155,7 +157,6 @@ const Login = () => {
             </div>
           </div>
 
-          {/* Demo Credentials */}
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
             <p className="text-sm font-medium text-foreground mb-2">Demo Credentials:</p>
             <p className="text-xs text-muted-foreground mb-1">Seller: seller@example.com</p>

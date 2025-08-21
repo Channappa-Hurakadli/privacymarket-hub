@@ -1,5 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+// Define the shape of the User's subscription
+export interface Subscription {
+  tier: 'none' | 'basic' | 'pro' | 'enterprise';
+  uploadCount: number;
+}
+
 // Define the shape of the User object for the Redux state
 export interface User {
   id: string;
@@ -8,6 +14,7 @@ export interface User {
   role: 'seller' | 'buyer';
   token: string;
   joinedDate: string;
+  subscription: Subscription; // Ensure subscription is part of the user type
 }
 
 // Define the shape of the initial state
@@ -44,15 +51,19 @@ const userSlice = createSlice({
       state.currentUser = null;
       state.isAuthenticated = false;
     },
-    // ADDED: Reducer to handle profile updates
     updateProfile(state, action: PayloadAction<{ name: string; email: string }>) {
       if (state.currentUser) {
         state.currentUser.name = action.payload.name;
         state.currentUser.email = action.payload.email;
       }
     },
+    updateSubscription(state, action: PayloadAction<Subscription>) {
+        if (state.currentUser) {
+            state.currentUser.subscription = action.payload;
+        }
+    }
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, updateProfile } = userSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, updateProfile, updateSubscription } = userSlice.actions;
 export default userSlice.reducer;

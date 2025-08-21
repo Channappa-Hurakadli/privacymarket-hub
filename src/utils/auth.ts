@@ -1,18 +1,19 @@
 import api from '../services/api';
+import { Subscription } from '../store/userSlice'; // Import the Subscription type
 
-// --- TYPE DEFINITIONS ---
-
-// Raw user data from the backend API
+// Interface for the raw user data returned from the backend API
 export interface ApiUser {
   _id: string;
   name: string;
   email: string;
-  password?: string; // Optional for API responses
   role: 'seller' | 'buyer';
   token: string;
+  password: string;
+  subscription: Subscription; // Ensure subscription is expected from the API
 }
 
-// User object used throughout the frontend (in Redux, localStorage)
+// Interface for the user object as it's used throughout the frontend
+// This is the shape that will be stored in Redux and localStorage
 export interface AppUser {
   id: string;
   name: string;
@@ -20,16 +21,18 @@ export interface AppUser {
   role: 'seller' | 'buyer';
   token: string;
   joinedDate: string;
+  subscription: Subscription; // Ensure subscription is part of the app's user model
 }
 
-// Data sent during registration
-type RegisterData = Omit<ApiUser, '_id' | 'token'>;
+// Type for the data sent during registration
+type RegisterData = Omit<ApiUser, '_id' | 'token' | 'subscription'>;
 
-// Data sent during login
-type LoginData = Pick<RegisterData, 'email' | 'password'>;
+// Type for the data sent during login
+type LoginData = {
+  email: string;
+  password: string;
+};
 
-
-// --- API FUNCTIONS ---
 
 /**
  * Registers a new user.
@@ -57,8 +60,6 @@ export const loginUser = async (credentials: LoginData): Promise<ApiUser> => {
   }
 };
 
-
-// --- LOCAL STORAGE FUNCTIONS ---
 
 /**
  * Stores the user object in localStorage.

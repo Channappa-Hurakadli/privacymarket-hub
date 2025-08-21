@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload as UploadIcon, FileText, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { RootState } from '../store';
 import { useToast } from '../hooks/use-toast';
+import { Link } from 'react-router-dom';
 import api from '../services/api'; // Import the API service
 
 const Upload = () => {

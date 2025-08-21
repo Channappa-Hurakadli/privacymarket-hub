@@ -16,6 +16,8 @@ interface MyDataset {
   createdAt: string;
   category: string;
   views: number;
+  status: 'processing' | 'anonymized' | 'failed';
+  originalFileName: string;
 }
 interface PurchasedDataset {
   _id: string;
@@ -41,17 +43,24 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   
+  const [stats, setStats] = useState({ totalRevenue: 0, totalDatasets: 0 });
   const [selectedPurchase, setSelectedPurchase] = useState<PurchasedDataset | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  // FIX: Added the missing state for the anonymized datasets modal
+  const [isAnonymizedModalOpen, setIsAnonymizedModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         if (currentUser?.role === 'seller') {
-          const response = await api.get('/datasets/my-datasets');
-          setMyDatasets(response.data);
+          const [datasetsRes, statsRes] = await Promise.all([
+            api.get('/datasets/my-datasets'),
+            api.get('/seller/stats')
+          ]);
+          setMyDatasets(datasetsRes.data);
+          setStats(statsRes.data);
         } else if (currentUser?.role === 'buyer') {
           const response = await api.get('/purchases/my-purchases');
           setPurchasedDatasets(response.data);
@@ -72,6 +81,11 @@ const Dashboard = () => {
   }, [currentUser, toast]);
   
   const handleToggleListing = async (dataset: MyDataset) => {
+    if (!dataset.isListed) {
+      const confirmPayment = window.confirm("Listing this dataset requires a one-time fee. Do you want to proceed?");
+      if (!confirmPayment) return;
+    }
+
     try {
       const newStatus = !dataset.isListed;
       await api.patch(`/datasets/${dataset._id}/list`, { isListed: newStatus });
@@ -82,12 +96,13 @@ const Dashboard = () => {
     }
   };
 
-  const handleDownload = async (datasetId: string, fileName: string) => {
+  const handleDownload = async (datasetId: string, fileName: string, isAnonymized: boolean) => {
+    const url = isAnonymized ? `/datasets/${datasetId}/download-anonymized` : `/datasets/${datasetId}/download`;
     try {
-      const response = await api.get(`/datasets/${datasetId}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const response = await api.get(url, { responseType: 'blob' });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
-      link.href = url;
+      link.href = blobUrl;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
@@ -123,117 +138,37 @@ const Dashboard = () => {
   }
 
   const isSeller = currentUser.role === 'seller';
+  const anonymizedDatasets = myDatasets.filter(d => d.status === 'anonymized');
 
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Welcome back, {currentUser.name}
-          </h1>
-          <p className="text-muted-foreground">
-            {isSeller ? 'Manage your datasets and track performance' : 'Explore your purchased datasets and insights'}
-          </p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Welcome back, {currentUser.name}</h1>
+          <p className="text-muted-foreground">{isSeller ? 'Manage your datasets and track performance' : 'Explore your purchased datasets and insights'}</p>
         </div>
 
-        {/* Stats Cards - Preserving original UI */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {isSeller ? (
             <>
-              <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Datasets</p>
-                    <p className="text-2xl font-bold text-foreground">{isLoading ? '...' : myDatasets.length}</p>
-                  </div>
-                  <Database className="w-8 h-8 text-primary" />
-                </div>
-              </div>
-              <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Revenue</p>
-                    <p className="text-2xl font-bold text-foreground">${'0'}</p>
-                  </div>
-                  <DollarSign className="w-8 h-8 text-accent" />
-                </div>
-              </div>
-              <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Total Views</p>
-                    <p className="text-2xl font-bold text-foreground">{isLoading ? '...' : myDatasets.reduce((sum, ds) => sum + (ds.views || 0), 0)}</p>
-                  </div>
-                  <Eye className="w-8 h-8 text-secondary" />
-                </div>
-              </div>
-              <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Active Since</p>
-                    <p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p>
-                  </div>
-                  <Calendar className="w-8 h-8 text-primary" />
-                </div>
-              </div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Total Datasets</p><p className="text-2xl font-bold text-foreground">{isLoading ? '...' : myDatasets.length}</p></div><Database className="w-8 h-8 text-primary" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Total Revenue</p><p className="text-2xl font-bold text-foreground">${isLoading ? '...' : stats.totalRevenue.toLocaleString()}</p></div><DollarSign className="w-8 h-8 text-accent" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Total Views</p><p className="text-2xl font-bold text-foreground">{isLoading ? '...' : myDatasets.reduce((sum, ds) => sum + (ds.views || 0), 0)}</p></div><Eye className="w-8 h-8 text-secondary" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Active Since</p><p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p></div><Calendar className="w-8 h-8 text-primary" /></div></div>
             </>
           ) : (
             <>
-              <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Purchased Datasets</p>
-                    <p className="text-2xl font-bold text-foreground">{isLoading ? '...' : purchasedDatasets.length}</p>
-                  </div>
-                  <Database className="w-8 h-8 text-primary" />
-                </div>
-              </div>
-              {/* <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Insights Generated</p>
-                    <p className="text-2xl font-bold text-foreground">127</p>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-accent" />
-                </div>
-              </div> */}
-              {/* <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Categories Explored</p>
-                    <p className="text-2xl font-bold text-foreground">8</p>
-                  </div>
-                  <Users className="w-8 h-8 text-secondary" />
-                </div>
-              </div> */}
-              <div className="card-corporate">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-muted-foreground text-sm">Member Since</p>
-                    <p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p>
-                  </div>
-                  <Calendar className="w-8 h-8 text-primary" />
-                </div>
-              </div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Purchased Datasets</p><p className="text-2xl font-bold text-foreground">{isLoading ? '...' : purchasedDatasets.length}</p></div><Database className="w-8 h-8 text-primary" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Insights Generated</p><p className="text-2xl font-bold text-foreground">127</p></div><TrendingUp className="w-8 h-8 text-accent" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Categories Explored</p><p className="text-2xl font-bold text-foreground">8</p></div><Users className="w-8 h-8 text-secondary" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Member Since</p><p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p></div><Calendar className="w-8 h-8 text-primary" /></div></div>
             </>
           )}
         </div>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-foreground">
-                {isSeller ? 'My Datasets' : 'My Purchases'}
-              </h2>
-              {isSeller && (
-                <Link to="/upload" className="btn-accent inline-flex items-center">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Upload New Dataset
-                </Link>
-              )}
-            </div>
+            <div className="flex items-center justify-between mb-6"><h2 className="text-2xl font-semibold text-foreground">{isSeller ? 'My Datasets' : 'My Purchases'}</h2>{isSeller && (<Link to="/upload" className="btn-accent inline-flex items-center"><Plus className="w-4 h-4 mr-2" />Upload New Dataset</Link>)}</div>
             <div className="space-y-4">
               {isLoading ? <p>Loading your data...</p> : isSeller ? (
                 myDatasets.length > 0 ? myDatasets.map((dataset) => (
@@ -274,7 +209,7 @@ const Dashboard = () => {
                       </div>
                       <div className="text-right flex flex-col items-end space-y-2">
                         <button onClick={() => handleViewClick(purchase)} className="btn-outline inline-flex items-center text-sm"><Eye className="w-4 h-4 mr-2" /> View</button>
-                        <button onClick={() => handleDownload(purchase.dataset._id, purchase.dataset.originalFileName)} className="btn-accent inline-flex items-center text-sm"><Download className="w-4 h-4 mr-2" /> Export</button>
+                        <button onClick={() => handleDownload(purchase.dataset._id, purchase.dataset.originalFileName, false)} className="btn-accent inline-flex items-center text-sm"><Download className="w-4 h-4 mr-2" /> Export</button>
                       </div>
                     </div>
                   </div>
@@ -283,7 +218,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Analytics/Quick Actions */}
           <div className="space-y-6">
             {!isSeller && (
               <div className="card-corporate">
@@ -304,6 +238,7 @@ const Dashboard = () => {
                 {isSeller ? (
                   <>
                     <Link to="/upload" className="btn-outline w-full text-center block">Upload Dataset</Link>
+                    <button onClick={() => setIsAnonymizedModalOpen(true)} className="btn-outline w-full text-center block">View Anonymized Datasets</button>
                     <Link to="/profile" className="btn-outline w-full text-center block">Edit Profile</Link>
                   </>
                 ) : (
@@ -317,7 +252,6 @@ const Dashboard = () => {
           </div>
         </div>
         
-        {/* Preview Modal */}
         {selectedPurchase && (
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedPurchase(null)}>
             <div className="card-corporate max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
@@ -343,6 +277,31 @@ const Dashboard = () => {
                     </table>
                   </div>
                 ) : <p>No preview available.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isAnonymizedModalOpen && (
+          <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setIsAnonymizedModalOpen(false)}>
+            <div className="card-corporate max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">Anonymized Datasets</h2>
+                <button onClick={() => setIsAnonymizedModalOpen(false)} className="p-2 hover:bg-muted rounded-lg transition-colors">X</button>
+              </div>
+              <div className="space-y-4">
+                {anonymizedDatasets.length > 0 ? anonymizedDatasets.map(dataset => (
+                  <div key={dataset._id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div>
+                      <p className="font-medium text-foreground">{dataset.title}</p>
+                      <p className="text-sm text-muted-foreground">{dataset.originalFileName}</p>
+                    </div>
+                    <button onClick={() => handleDownload(dataset._id, `anonymized_${dataset.originalFileName}`, true)} className="btn-accent inline-flex items-center text-sm">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </button>
+                  </div>
+                )) : <p>You have no anonymized datasets ready for download.</p>}
               </div>
             </div>
           </div>

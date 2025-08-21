@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { User, Mail, Calendar, Shield, Edit2, Save, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { User, Mail, Calendar, Shield, Edit2, Save, X, Star } from 'lucide-react';
 import { RootState } from '../store';
 import { updateProfile } from '../store/userSlice';
 import { useToast } from '../hooks/use-toast';
-import { getUser, storeUser, AppUser } from '../utils/auth'; // Import auth utils
+import { getUser, storeUser, AppUser } from '../utils/auth';
 
 const Profile = () => {
   const { currentUser } = useSelector((state: RootState) => state.user);
@@ -49,13 +50,11 @@ const Profile = () => {
       return;
     }
 
-    // Dispatch the update to Redux
     dispatch(updateProfile({
       name: editForm.name,
       email: editForm.email
     }));
 
-    // Also update localStorage to persist changes
     const storedUser = getUser();
     if (storedUser) {
       const updatedUser: AppUser = {
@@ -80,14 +79,14 @@ const Profile = () => {
     });
   };
 
+  const isSeller = currentUser.role === 'seller';
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Profile Settings</h1>
-          <p className="text-muted-foreground">
-            Manage your account information and preferences
-          </p>
+          <p className="text-muted-foreground">Manage your account information and preferences</p>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
@@ -95,20 +94,11 @@ const Profile = () => {
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Personal Information</h2>
                 {!isEditing ? (
-                  <button onClick={handleEdit} className="btn-outline inline-flex items-center">
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </button>
+                  <button onClick={handleEdit} className="btn-outline inline-flex items-center"><Edit2 className="w-4 h-4 mr-2" />Edit Profile</button>
                 ) : (
                   <div className="flex space-x-2">
-                    <button onClick={handleSave} className="btn-accent inline-flex items-center">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </button>
-                    <button onClick={handleCancel} className="btn-outline inline-flex items-center">
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
-                    </button>
+                    <button onClick={handleSave} className="btn-accent inline-flex items-center"><Save className="w-4 h-4 mr-2" />Save</button>
+                    <button onClick={handleCancel} className="btn-outline inline-flex items-center"><X className="w-4 h-4 mr-2" />Cancel</button>
                   </div>
                 )}
               </div>
@@ -116,45 +106,26 @@ const Profile = () => {
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
                   {isEditing ? (
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input type="text" name="name" value={editForm.name} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" placeholder="Enter your full name" />
-                    </div>
+                    <div className="relative"><User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" /><input type="text" name="name" value={editForm.name} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" placeholder="Enter your full name" /></div>
                   ) : (
-                    <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
-                      <User className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-foreground">{currentUser.name}</span>
-                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg"><User className="w-5 h-5 text-muted-foreground" /><span className="text-foreground">{currentUser.name}</span></div>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Email Address</label>
                   {isEditing ? (
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input type="email" name="email" value={editForm.email} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" placeholder="Enter your email address" />
-                    </div>
+                    <div className="relative"><Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" /><input type="email" name="email" value={editForm.email} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" placeholder="Enter your email address" /></div>
                   ) : (
-                    <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
-                      <Mail className="w-5 h-5 text-muted-foreground" />
-                      <span className="text-foreground">{currentUser.email}</span>
-                    </div>
+                    <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg"><Mail className="w-5 h-5 text-muted-foreground" /><span className="text-foreground">{currentUser.email}</span></div>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Account Type</label>
-                  <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
-                    <Shield className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-foreground">{currentUser.role}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">Contact support to change account type</span>
-                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg"><Shield className="w-5 h-5 text-muted-foreground" /><span className="text-foreground capitalize">{currentUser.role}</span><span className="text-xs text-muted-foreground ml-auto">Contact support to change account type</span></div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Member Since</label>
-                  <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
-                    <Calendar className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</span>
-                  </div>
+                  <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg"><Calendar className="w-5 h-5 text-muted-foreground" /><span className="text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</span></div>
                 </div>
               </div>
             </div>
@@ -165,24 +136,31 @@ const Profile = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between"><span className="text-muted-foreground">Account Status</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Active</span></div>
                 <div className="flex items-center justify-between"><span className="text-muted-foreground">Verification</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Verified</span></div>
-                <div className="flex items-center justify-between"><span className="text-muted-foreground">Data Privacy</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Protected</span></div>
+                {isSeller && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Subscription</span>
+                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium capitalize">{currentUser.subscription?.tier || 'None'}</span>
+                  </div>
+                )}
               </div>
             </div>
-            {/* <div className="card-corporate">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Security</h3>
-              <div className="space-y-3">
-                <button className="btn-outline w-full text-center">Change Password</button>
-                <button className="btn-outline w-full text-center">Two-Factor Auth</button>
-                <button className="btn-outline w-full text-center">Privacy Settings</button>
-              </div>
-            </div> */}
-            {currentUser.role === 'seller' && (
+            {isSeller && (
+                <div className="card-corporate">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">Manage Subscription</h3>
+                    <div className="space-y-3">
+                        <Link to="/subscribe" className="btn-outline w-full text-center block">
+                            View Plans
+                        </Link>
+                    </div>
+                </div>
+            )}
+            {isSeller && (
               <div className="card-corporate">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Seller Stats</h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Datasets</span><span className="font-medium">2</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Total Views</span><span className="font-medium">2,132</span></div>
-                  <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="font-medium">$21,400</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Datasets</span><span className="font-medium">...</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total Views</span><span className="font-medium">...</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="font-medium">...</span></div>
                 </div>
               </div>
             )}
