@@ -1,83 +1,83 @@
-import { User } from '../store/userSlice';
+import api from '../services/api';
 
-// Mock authentication utility - API-ready structure
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
+// --- TYPE DEFINITIONS ---
 
-export interface RegisterCredentials extends LoginCredentials {
+// Raw user data from the backend API
+export interface ApiUser {
+  _id: string;
   name: string;
-  role: 'Seller' | 'Buyer';
+  email: string;
+  password?: string; // Optional for API responses
+  role: 'seller' | 'buyer';
+  token: string;
 }
 
-// Mock users database
-const mockUsers: User[] = [
-  {
-    id: '1',
-    email: 'seller@example.com',
-    name: 'John Seller',
-    role: 'Seller',
-    joinedDate: '2024-01-15'
-  },
-  {
-    id: '2',
-    email: 'buyer@example.com',
-    name: 'Jane Buyer',
-    role: 'Buyer',
-    joinedDate: '2024-02-20'
+// User object used throughout the frontend (in Redux, localStorage)
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'seller' | 'buyer';
+  token: string;
+  joinedDate: string;
+}
+
+// Data sent during registration
+type RegisterData = Omit<ApiUser, '_id' | 'token'>;
+
+// Data sent during login
+type LoginData = Pick<RegisterData, 'email' | 'password'>;
+
+
+// --- API FUNCTIONS ---
+
+/**
+ * Registers a new user.
+ */
+export const registerUser = async (userData: RegisterData): Promise<ApiUser> => {
+  try {
+    const response = await api.post<ApiUser>('/auth/register', userData);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || 'An unexpected error occurred during registration.';
+    throw new Error(message);
   }
-];
+};
 
-export const loginUser = async (credentials: LoginCredentials): Promise<User> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  const user = mockUsers.find(u => u.email === credentials.email);
-  if (!user) {
-    throw new Error('User not found');
+/**
+ * Logs in an existing user.
+ */
+export const loginUser = async (credentials: LoginData): Promise<ApiUser> => {
+  try {
+    const response = await api.post<ApiUser>('/auth/login', credentials);
+    return response.data;
+  } catch (error: any) {
+    const message = error.response?.data?.message || 'Invalid credentials. Please try again.';
+    throw new Error(message);
   }
-  
-  // In real implementation, validate password hash
-  return user;
 };
 
-export const registerUser = async (credentials: RegisterCredentials): Promise<User> => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1200));
-  
-  // Check if user already exists
-  const existingUser = mockUsers.find(u => u.email === credentials.email);
-  if (existingUser) {
-    throw new Error('User already exists');
-  }
-  
-  const newUser: User = {
-    id: Date.now().toString(),
-    email: credentials.email,
-    name: credentials.name,
-    role: credentials.role,
-    joinedDate: new Date().toISOString().split('T')[0]
-  };
-  
-  mockUsers.push(newUser);
-  return newUser;
+
+// --- LOCAL STORAGE FUNCTIONS ---
+
+/**
+ * Stores the user object in localStorage.
+ */
+export const storeUser = (user: AppUser) => {
+  localStorage.setItem('user', JSON.stringify(user));
 };
 
-export const validateToken = (token: string): boolean => {
-  // Mock token validation
-  return token && token.length > 0;
+/**
+ * Retrieves the user object from localStorage.
+ */
+export const getUser = (): AppUser | null => {
+  const userString = localStorage.getItem('user');
+  return userString ? JSON.parse(userString) : null;
 };
 
-export const getStoredUser = (): User | null => {
-  const userData = localStorage.getItem('marketsafe_user');
-  return userData ? JSON.parse(userData) : null;
-};
-
-export const storeUser = (user: User): void => {
-  localStorage.setItem('marketsafe_user', JSON.stringify(user));
-};
-
-export const clearStoredUser = (): void => {
-  localStorage.removeItem('marketsafe_user');
+/**
+ * Removes the user object from localStorage.
+ */
+export const removeUser = () => {
+  localStorage.removeItem('user');
 };

@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { store } from './store';
 import { loginSuccess } from './store/userSlice';
-import { getStoredUser } from './utils/auth';
+import { getUser } from './utils/auth';
 
 // Components
 import Navbar from './components/Navbar';
@@ -30,7 +30,7 @@ const UserInitializer = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const storedUser = getStoredUser();
+    const storedUser = getUser();
     if (storedUser) {
       dispatch(loginSuccess(storedUser));
     }

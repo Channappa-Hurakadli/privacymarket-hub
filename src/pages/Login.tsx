@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Mail, Lock, Eye, EyeOff, Shield } from 'lucide-react';
 import { RootState } from '../store';
 import { loginStart, loginSuccess, loginFailure } from '../store/userSlice';
-import { loginUser, storeUser } from '../utils/auth';
+import { loginUser, storeUser, AppUser } from '../utils/auth'; // Correctly import AppUser
 import { useToast } from '../hooks/use-toast';
 
 const Login = () => {
@@ -37,12 +37,26 @@ const Login = () => {
     dispatch(loginStart());
     
     try {
-      const user = await loginUser({ email, password });
-      dispatch(loginSuccess(user));
-      storeUser(user);
+      // 1. Call the API to get the raw user object
+      const userFromApi = await loginUser({ email, password });
+
+      // 2. Transform the API response into the AppUser format
+      const appUser: AppUser = {
+        id: userFromApi._id,
+        name: userFromApi.name,
+        email: userFromApi.email,
+        role: userFromApi.role,
+        token: userFromApi.token,
+        joinedDate: new Date().toISOString(), // Assuming joinedDate comes from frontend upon login
+      };
+
+      // 3. Dispatch the correctly formatted user to Redux and localStorage
+      dispatch(loginSuccess(appUser));
+      storeUser(appUser);
+
       toast({
         title: "Welcome back!",
-        description: `Logged in as ${user.name}`,
+        description: `Logged in as ${appUser.name}`,
       });
       navigate('/dashboard');
     } catch (error) {

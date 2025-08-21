@@ -1,48 +1,54 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
+// Define the shape of the User object for the Redux state
 export interface User {
   id: string;
-  email: string;
   name: string;
-  role: 'Seller' | 'Buyer';
+  email: string;
+  role: 'seller' | 'buyer';
+  token: string;
   joinedDate: string;
 }
 
+// Define the shape of the initial state
 interface UserState {
   currentUser: User | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
+  isAuthenticated: boolean;
 }
 
 const initialState: UserState = {
   currentUser: null,
-  isAuthenticated: false,
   isLoading: false,
+  isAuthenticated: false,
 };
 
 const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    loginStart: (state) => {
+    loginStart(state) {
       state.isLoading = true;
     },
-    loginSuccess: (state, action: PayloadAction<User>) => {
+    loginSuccess(state, action: PayloadAction<User>) {
+      state.isLoading = false;
       state.currentUser = action.payload;
       state.isAuthenticated = true;
-      state.isLoading = false;
     },
-    loginFailure: (state) => {
+    loginFailure(state) {
       state.isLoading = false;
-    },
-    logout: (state) => {
       state.currentUser = null;
       state.isAuthenticated = false;
-      state.isLoading = false;
     },
-    updateProfile: (state, action: PayloadAction<Partial<User>>) => {
+    logout(state) {
+      state.currentUser = null;
+      state.isAuthenticated = false;
+    },
+    // ADDED: Reducer to handle profile updates
+    updateProfile(state, action: PayloadAction<{ name: string; email: string }>) {
       if (state.currentUser) {
-        state.currentUser = { ...state.currentUser, ...action.payload };
+        state.currentUser.name = action.payload.name;
+        state.currentUser.email = action.payload.email;
       }
     },
   },

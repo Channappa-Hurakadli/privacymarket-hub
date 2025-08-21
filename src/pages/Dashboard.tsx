@@ -1,55 +1,96 @@
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { RootState } from '../store';
-import { Upload, Database, TrendingUp, Users, Plus, Eye, Calendar, DollarSign } from 'lucide-react';
+import { Database, TrendingUp, Users, Plus, Eye, Calendar, DollarSign, ToggleLeft, ToggleRight, Download } from 'lucide-react';
+import api from '../services/api';
+import { useToast } from '../hooks/use-toast';
 
-// Mock datasets for demonstration
-const mockSellerDatasets = [
-  {
-    id: '1',
-    title: 'E-commerce Customer Behavior Q3 2024',
-    description: 'Anonymous shopping patterns and preferences from 50K users',
-    category: 'E-commerce',
-    uploads: 45200,
-    revenue: 12500,
-    views: 1240,
-    uploadDate: '2024-01-15'
-  },
-  {
-    id: '2',
-    title: 'Mobile App User Engagement Data',
-    description: 'User interaction patterns across mobile shopping apps',
-    category: 'Mobile',
-    uploads: 32100,
-    revenue: 8900,
-    views: 892,
-    uploadDate: '2024-02-03'
-  }
-];
+// Type for a seller's own uploaded datasets
+interface MyDataset {
+  _id: string;
+  title: string;
+  description: string;
+  price: number;
+  isListed: boolean;
+  createdAt: string;
+  category: string; // Add category to match original mock data
+}
 
-const mockBuyerPurchases = [
-  {
-    id: '3',
-    title: 'Social Media Marketing Insights',
-    description: 'Consumer engagement patterns across social platforms',
-    category: 'Social Media',
-    seller: 'DataCorp Inc.',
-    purchaseDate: '2024-02-20',
-    insights: 'High engagement rates in Electronics category suggest 23% increase in conversion potential'
-  },
-  {
-    id: '4',
-    title: 'Retail Analytics Dataset',
-    description: 'Seasonal shopping trends and consumer preferences',
-    category: 'Retail',
-    seller: 'Market Analytics Pro',
-    purchaseDate: '2024-01-30',
-    insights: 'Strong Electronics purchase interest detected with peak activity during weekend hours'
-  }
-];
+// Type for a buyer's purchased datasets
+interface PurchasedDataset {
+  _id: string; // This is the purchase ID
+  dataset: {
+    _id: string; // This is the dataset ID
+    title: string;
+    description: string;
+    originalFileName: string;
+    category: string;
+    seller: {
+      name: string;
+    }
+  };
+  purchaseDate: string;
+}
 
 const Dashboard = () => {
   const { currentUser } = useSelector((state: RootState) => state.user);
+  const [myDatasets, setMyDatasets] = useState<MyDataset[]>([]);
+  const [purchasedDatasets, setPurchasedDatasets] = useState<PurchasedDataset[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        if (currentUser?.role === 'seller') {
+          const response = await api.get('/datasets/my-datasets');
+          setMyDatasets(response.data);
+        } else if (currentUser?.role === 'buyer') {
+          const response = await api.get('/purchases/my-purchases');
+          setPurchasedDatasets(response.data);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error fetching data",
+          description: error.response?.data?.message || "Could not load your dashboard.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (currentUser) {
+      fetchData();
+    }
+  }, [currentUser, toast]);
+  
+  const handleToggleListing = async (dataset: MyDataset) => {
+    try {
+      const newStatus = !dataset.isListed;
+      await api.patch(`/datasets/${dataset._id}/list`, { isListed: newStatus });
+      setMyDatasets(myDatasets.map(d => d._id === dataset._id ? { ...d, isListed: newStatus } : d));
+      toast({ title: "Success", description: `Dataset has been ${newStatus ? 'listed' : 'unlisted'}.` });
+    } catch (error: any) {
+      toast({ title: "Update Failed", description: error.response?.data?.message || "Could not update listing.", variant: "destructive" });
+    }
+  };
+
+  const handleDownload = async (datasetId: string, fileName: string) => {
+    try {
+      const response = await api.get(`/datasets/${datasetId}/download`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error: any) {
+      toast({ title: "Download Failed", description: error.response?.data?.message || "Could not download file.", variant: "destructive" });
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -62,7 +103,7 @@ const Dashboard = () => {
     );
   }
 
-  const isSeller = currentUser.role === 'Seller';
+  const isSeller = currentUser.role === 'seller';
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -77,7 +118,7 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Preserving original UI */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {isSeller ? (
             <>
@@ -85,7 +126,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Total Datasets</p>
-                    <p className="text-2xl font-bold text-foreground">{mockSellerDatasets.length}</p>
+                    <p className="text-2xl font-bold text-foreground">{isLoading ? '...' : myDatasets.length}</p>
                   </div>
                   <Database className="w-8 h-8 text-primary" />
                 </div>
@@ -95,7 +136,7 @@ const Dashboard = () => {
                   <div>
                     <p className="text-muted-foreground text-sm">Total Revenue</p>
                     <p className="text-2xl font-bold text-foreground">
-                      ${mockSellerDatasets.reduce((sum, dataset) => sum + dataset.revenue, 0).toLocaleString()}
+                      ${isLoading ? '...' : '0'} {/* Placeholder for revenue */}
                     </p>
                   </div>
                   <DollarSign className="w-8 h-8 text-accent" />
@@ -106,7 +147,7 @@ const Dashboard = () => {
                   <div>
                     <p className="text-muted-foreground text-sm">Total Views</p>
                     <p className="text-2xl font-bold text-foreground">
-                      {mockSellerDatasets.reduce((sum, dataset) => sum + dataset.views, 0).toLocaleString()}
+                      {isLoading ? '...' : '0'} {/* Placeholder for views */}
                     </p>
                   </div>
                   <Eye className="w-8 h-8 text-secondary" />
@@ -116,7 +157,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Active Since</p>
-                    <p className="text-2xl font-bold text-foreground">{currentUser.joinedDate}</p>
+                    <p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p>
                   </div>
                   <Calendar className="w-8 h-8 text-primary" />
                 </div>
@@ -128,7 +169,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Purchased Datasets</p>
-                    <p className="text-2xl font-bold text-foreground">{mockBuyerPurchases.length}</p>
+                    <p className="text-2xl font-bold text-foreground">{isLoading ? '...' : purchasedDatasets.length}</p>
                   </div>
                   <Database className="w-8 h-8 text-primary" />
                 </div>
@@ -137,7 +178,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Insights Generated</p>
-                    <p className="text-2xl font-bold text-foreground">127</p>
+                    <p className="text-2xl font-bold text-foreground">127</p> {/* Placeholder */}
                   </div>
                   <TrendingUp className="w-8 h-8 text-accent" />
                 </div>
@@ -146,7 +187,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Categories Explored</p>
-                    <p className="text-2xl font-bold text-foreground">8</p>
+                    <p className="text-2xl font-bold text-foreground">8</p> {/* Placeholder */}
                   </div>
                   <Users className="w-8 h-8 text-secondary" />
                 </div>
@@ -155,7 +196,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm">Member Since</p>
-                    <p className="text-2xl font-bold text-foreground">{currentUser.joinedDate}</p>
+                    <p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p>
                   </div>
                   <Calendar className="w-8 h-8 text-primary" />
                 </div>
@@ -166,7 +207,6 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Datasets/Purchases */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold text-foreground">
@@ -181,46 +221,54 @@ const Dashboard = () => {
             </div>
 
             <div className="space-y-4">
-              {isSeller ? (
-                mockSellerDatasets.map((dataset) => (
-                  <div key={dataset.id} className="card-dataset">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground mb-2">{dataset.title}</h3>
-                        <p className="text-muted-foreground mb-3">{dataset.description}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">
-                            {dataset.category}
-                          </span>
-                          <span>{dataset.views} views</span>
-                          <span>${dataset.revenue} earned</span>
+              {isLoading ? <p>Loading your data...</p> : (
+                isSeller ? (
+                  myDatasets.length > 0 ? myDatasets.map((dataset) => (
+                    <div key={dataset._id} className="card-dataset">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-foreground mb-2">{dataset.title}</h3>
+                          <p className="text-muted-foreground mb-3">{dataset.description}</p>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{dataset.category}</span>
+                            <span>{0} views</span> {/* Placeholder */}
+                            <span>${dataset.price}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Uploaded</p>
-                        <p className="font-medium">{dataset.uploadDate}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                mockBuyerPurchases.map((purchase) => (
-                  <div key={purchase.id} className="card-dataset">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground mb-2">{purchase.title}</h3>
-                        <p className="text-muted-foreground mb-2">{purchase.description}</p>
-                        <p className="text-sm text-muted-foreground mb-3">by {purchase.seller}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                          <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">
-                            {purchase.category}
-                          </span>
-                          <span>Purchased {purchase.purchaseDate}</span>
+                        <div className="text-right">
+                          <p className="text-sm text-muted-foreground">Uploaded</p>
+                          <p className="font-medium">{new Date(dataset.createdAt).toLocaleDateString()}</p>
+                           <button onClick={() => handleToggleListing(dataset)} className="flex items-center text-sm font-medium text-primary hover:underline mt-2">
+                              {dataset.isListed ? <ToggleRight className="w-5 h-5 mr-1 text-green-500"/> : <ToggleLeft className="w-5 h-5 mr-1 text-gray-400"/>}
+                              {dataset.isListed ? 'Listed' : 'Unlisted'}
+                            </button>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  )) : (
+                    <div className="text-center py-12"><Database className="w-12 h-12 text-muted-foreground mx-auto mb-4" /><h3 className="text-lg font-medium text-foreground mb-2">No datasets uploaded</h3><p className="text-muted-foreground"><Link to="/upload" className="text-primary hover:underline">Upload your first dataset</Link> to get started.</p></div>
+                  )
+                ) : (
+                  purchasedDatasets.length > 0 ? purchasedDatasets.map((purchase) => (
+                    <div key={purchase._id} className="card-dataset">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-foreground mb-2">{purchase.dataset.title}</h3>
+                          <p className="text-muted-foreground mb-2">{purchase.dataset.description}</p>
+                          <p className="text-sm text-muted-foreground mb-3">by {purchase.dataset.seller.name}</p>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{purchase.dataset.category}</span>
+                            <span>Purchased {new Date(purchase.purchaseDate).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                         <div className="text-right flex flex-col items-end space-y-2">
+                            {/* <button className="btn-outline inline-flex items-center text-sm"><Eye className="w-4 h-4 mr-2" /> View</button> */}
+                            <button onClick={() => handleDownload(purchase.dataset._id, purchase.dataset.originalFileName)} className="btn-accent inline-flex items-center text-sm"><Download className="w-4 h-4 mr-2" /> Export</button>
+                        </div>
+                      </div>
+                    </div>
+                  )) : <p>You have not purchased any datasets yet.</p>
+                )
               )}
             </div>
           </div>
@@ -231,36 +279,27 @@ const Dashboard = () => {
               <div className="card-corporate">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Latest Insights</h3>
                 <div className="space-y-4">
-                  {mockBuyerPurchases.slice(0, 2).map((purchase) => (
-                    <div key={purchase.id} className="p-4 bg-muted/30 rounded-lg">
-                      <h4 className="font-medium text-foreground mb-2">{purchase.title}</h4>
-                      <p className="text-sm text-muted-foreground">{purchase.insights}</p>
+                  {purchasedDatasets.slice(0, 2).map((purchase) => (
+                    <div key={purchase._id} className="p-4 bg-muted/30 rounded-lg">
+                      <h4 className="font-medium text-foreground mb-2">{purchase.dataset.title}</h4>
+                      <p className="text-sm text-muted-foreground">{/* Placeholder for insights */}</p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
             <div className="card-corporate">
               <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
               <div className="space-y-3">
                 {isSeller ? (
                   <>
-                    <Link to="/upload" className="btn-outline w-full text-center block">
-                      Upload Dataset
-                    </Link>
-                    <Link to="/profile" className="btn-outline w-full text-center block">
-                      Edit Profile
-                    </Link>
+                    <Link to="/upload" className="btn-outline w-full text-center block">Upload Dataset</Link>
+                    <Link to="/profile" className="btn-outline w-full text-center block">Edit Profile</Link>
                   </>
                 ) : (
                   <>
-                    <Link to="/marketplace" className="btn-outline w-full text-center block">
-                      Browse Marketplace
-                    </Link>
-                    <Link to="/profile" className="btn-outline w-full text-center block">
-                      Edit Profile
-                    </Link>
+                    <Link to="/marketplace" className="btn-outline w-full text-center block">Browse Marketplace</Link>
+                    <Link to="/profile" className="btn-outline w-full text-center block">Edit Profile</Link>
                   </>
                 )}
               </div>

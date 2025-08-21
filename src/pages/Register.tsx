@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Mail, Lock, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { RootState } from '../store';
 import { loginStart, loginSuccess, loginFailure } from '../store/userSlice';
-import { registerUser, storeUser } from '../utils/auth';
+import { registerUser, storeUser, AppUser } from '../utils/auth';
 import { useToast } from '../hooks/use-toast';
 
 const Register = () => {
@@ -13,7 +13,7 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'Buyer' as 'Seller' | 'Buyer'
+    role: 'buyer' as 'seller' | 'buyer'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -39,46 +39,46 @@ const Register = () => {
     e.preventDefault();
     
     if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
       return;
     }
-
     if (formData.password !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
       return;
     }
-
     if (formData.password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters long",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Password must be at least 6 characters long", variant: "destructive" });
       return;
     }
 
     dispatch(loginStart());
     
     try {
-      const user = await registerUser({
+      // 1. Call the API
+      const userFromApi = await registerUser({
         name: formData.name,
         email: formData.email,
         password: formData.password,
-        role: formData.role
+        role: formData.role.toLowerCase() as 'seller' | 'buyer'
       });
-      dispatch(loginSuccess(user));
-      storeUser(user);
+
+      // 2. Transform the API response into the format our app uses
+      const appUser: AppUser = {
+        id: userFromApi._id, // Map _id to id
+        name: userFromApi.name,
+        email: userFromApi.email,
+        role: userFromApi.role,
+        token: userFromApi.token,
+        joinedDate: new Date().toISOString(), // Add the missing property
+      };
+
+      // 3. Dispatch the correctly formatted user to Redux and localStorage
+      dispatch(loginSuccess(appUser));
+      storeUser(appUser);
+      
       toast({
         title: "Welcome to MarketSafe AI!",
-        description: `Account created successfully as ${user.role}`,
+        description: `Account created successfully as ${appUser.role}`,
       });
       navigate('/dashboard');
     } catch (error) {
@@ -161,8 +161,8 @@ const Register = () => {
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
               >
-                <option value="Buyer">Buyer - Purchase and explore datasets</option>
-                <option value="Seller">Seller - Upload and monetize datasets</option>
+                <option value="buyer">Buyer</option>
+                <option value="seller">Seller</option>
               </select>
             </div>
 

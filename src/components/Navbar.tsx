@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Moon, Sun, Menu, X, Shield, User, LogOut } from 'lucide-react';
 import { RootState } from '../store';
 import { logout } from '../store/userSlice';
-import { clearStoredUser } from '../utils/auth';
+// FIX 1: Changed clearStoredUser to the correct function name, removeUser
+import { removeUser } from '../utils/auth';
 
 const Navbar = () => {
   const [isDark, setIsDark] = useState(false);
@@ -20,7 +21,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    clearStoredUser();
+    removeUser(); // Use the correct function name here
     navigate('/');
   };
 
@@ -48,12 +49,14 @@ const Navbar = () => {
                 <Link to="/dashboard" className="text-foreground hover:text-primary transition-colors">
                   Dashboard
                 </Link>
-                {currentUser?.role === 'Buyer' && (
+                {/* FIX 2: Changed role check to lowercase */}
+                {currentUser?.role === 'buyer' && (
                   <Link to="/marketplace" className="text-foreground hover:text-primary transition-colors">
                     Marketplace
                   </Link>
                 )}
-                {currentUser?.role === 'Seller' && (
+                {/* FIX 2: Changed role check to lowercase */}
+                {currentUser?.role === 'seller' && (
                   <Link to="/upload" className="text-foreground hover:text-primary transition-colors">
                     Upload
                   </Link>
@@ -133,7 +136,8 @@ const Navbar = () => {
                   >
                     Dashboard
                   </Link>
-                  {currentUser?.role === 'Buyer' && (
+                  {/* FIX 2: Changed role check to lowercase */}
+                  {currentUser?.role === 'buyer' && (
                     <Link
                       to="/marketplace"
                       className="p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"
@@ -142,7 +146,8 @@ const Navbar = () => {
                       Marketplace
                     </Link>
                   )}
-                  {currentUser?.role === 'Seller' && (
+                  {/* FIX 2: Changed role check to lowercase */}
+                  {currentUser?.role === 'seller' && (
                     <Link
                       to="/upload"
                       className="p-2 text-foreground hover:text-primary hover:bg-muted rounded-lg transition-colors"

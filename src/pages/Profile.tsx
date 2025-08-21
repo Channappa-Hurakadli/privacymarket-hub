@@ -4,6 +4,7 @@ import { User, Mail, Calendar, Shield, Edit2, Save, X } from 'lucide-react';
 import { RootState } from '../store';
 import { updateProfile } from '../store/userSlice';
 import { useToast } from '../hooks/use-toast';
+import { getUser, storeUser, AppUser } from '../utils/auth'; // Import auth utils
 
 const Profile = () => {
   const { currentUser } = useSelector((state: RootState) => state.user);
@@ -36,35 +37,34 @@ const Profile = () => {
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditForm({
-      name: currentUser.name,
-      email: currentUser.email
-    });
   };
 
   const handleSave = () => {
     if (!editForm.name.trim() || !editForm.email.trim()) {
-      toast({
-        title: "Error",
-        description: "Name and email are required",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Name and email are required", variant: "destructive" });
       return;
     }
-
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid email address",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Please enter a valid email address", variant: "destructive" });
       return;
     }
 
+    // Dispatch the update to Redux
     dispatch(updateProfile({
       name: editForm.name,
       email: editForm.email
     }));
+
+    // Also update localStorage to persist changes
+    const storedUser = getUser();
+    if (storedUser) {
+      const updatedUser: AppUser = {
+        ...storedUser,
+        name: editForm.name,
+        email: editForm.email,
+      };
+      storeUser(updatedUser);
+    }
 
     setIsEditing(false);
     toast({
@@ -83,65 +83,42 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">Profile Settings</h1>
           <p className="text-muted-foreground">
             Manage your account information and preferences
           </p>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Profile Card */}
           <div className="lg:col-span-2">
             <div className="card-corporate">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Personal Information</h2>
                 {!isEditing ? (
-                  <button
-                    onClick={handleEdit}
-                    className="btn-outline inline-flex items-center"
-                  >
+                  <button onClick={handleEdit} className="btn-outline inline-flex items-center">
                     <Edit2 className="w-4 h-4 mr-2" />
                     Edit Profile
                   </button>
                 ) : (
                   <div className="flex space-x-2">
-                    <button
-                      onClick={handleSave}
-                      className="btn-accent inline-flex items-center"
-                    >
+                    <button onClick={handleSave} className="btn-accent inline-flex items-center">
                       <Save className="w-4 h-4 mr-2" />
                       Save
                     </button>
-                    <button
-                      onClick={handleCancel}
-                      className="btn-outline inline-flex items-center"
-                    >
+                    <button onClick={handleCancel} className="btn-outline inline-flex items-center">
                       <X className="w-4 h-4 mr-2" />
                       Cancel
                     </button>
                   </div>
                 )}
               </div>
-
               <div className="space-y-6">
-                {/* Name */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Full Name
-                  </label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Full Name</label>
                   {isEditing ? (
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="text"
-                        name="name"
-                        value={editForm.name}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                        placeholder="Enter your full name"
-                      />
+                      <input type="text" name="name" value={editForm.name} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" placeholder="Enter your full name" />
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
@@ -150,23 +127,12 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Email */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Email Address
-                  </label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Email Address</label>
                   {isEditing ? (
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <input
-                        type="email"
-                        name="email"
-                        value={editForm.email}
-                        onChange={handleChange}
-                        className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
-                        placeholder="Enter your email address"
-                      />
+                      <input type="email" name="email" value={editForm.email} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" placeholder="Enter your email address" />
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
@@ -175,92 +141,48 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Role (Read-only) */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Account Type
-                  </label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Account Type</label>
                   <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
                     <Shield className="w-5 h-5 text-muted-foreground" />
                     <span className="text-foreground">{currentUser.role}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      Contact support to change account type
-                    </span>
+                    <span className="text-xs text-muted-foreground ml-auto">Contact support to change account type</span>
                   </div>
                 </div>
-
-                {/* Join Date (Read-only) */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Member Since
-                  </label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Member Since</label>
                   <div className="flex items-center space-x-3 p-3 bg-muted/30 rounded-lg">
                     <Calendar className="w-5 h-5 text-muted-foreground" />
-                    <span className="text-foreground">{currentUser.joinedDate}</span>
+                    <span className="text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Account Stats */}
           <div className="space-y-6">
             <div className="card-corporate">
               <h3 className="text-lg font-semibold text-foreground mb-4">Account Status</h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Account Status</span>
-                  <span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">
-                    Active
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Verification</span>
-                  <span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">
-                    Verified
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Data Privacy</span>
-                  <span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">
-                    Protected
-                  </span>
-                </div>
+                <div className="flex items-center justify-between"><span className="text-muted-foreground">Account Status</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Active</span></div>
+                <div className="flex items-center justify-between"><span className="text-muted-foreground">Verification</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Verified</span></div>
+                <div className="flex items-center justify-between"><span className="text-muted-foreground">Data Privacy</span><span className="bg-accent/10 text-accent px-2 py-1 rounded-full text-sm font-medium">Protected</span></div>
               </div>
             </div>
-
             <div className="card-corporate">
               <h3 className="text-lg font-semibold text-foreground mb-4">Security</h3>
               <div className="space-y-3">
-                <button className="btn-outline w-full text-center">
-                  Change Password
-                </button>
-                <button className="btn-outline w-full text-center">
-                  Two-Factor Auth
-                </button>
-                <button className="btn-outline w-full text-center">
-                  Privacy Settings
-                </button>
+                <button className="btn-outline w-full text-center">Change Password</button>
+                <button className="btn-outline w-full text-center">Two-Factor Auth</button>
+                <button className="btn-outline w-full text-center">Privacy Settings</button>
               </div>
             </div>
-
-            {currentUser.role === 'Seller' && (
+            {currentUser.role === 'seller' && (
               <div className="card-corporate">
                 <h3 className="text-lg font-semibold text-foreground mb-4">Seller Stats</h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Datasets</span>
-                    <span className="font-medium">2</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Views</span>
-                    <span className="font-medium">2,132</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Revenue</span>
-                    <span className="font-medium">$21,400</span>
-                  </div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Datasets</span><span className="font-medium">2</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Total Views</span><span className="font-medium">2,132</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Revenue</span><span className="font-medium">$21,400</span></div>
                 </div>
               </div>
             )}
