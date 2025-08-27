@@ -47,7 +47,6 @@ const Dashboard = () => {
   const [selectedPurchase, setSelectedPurchase] = useState<PurchasedDataset | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  // FIX: Added the missing state for the anonymized datasets modal
   const [isAnonymizedModalOpen, setIsAnonymizedModalOpen] = useState(false);
 
   useEffect(() => {
@@ -159,8 +158,8 @@ const Dashboard = () => {
           ) : (
             <>
               <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Purchased Datasets</p><p className="text-2xl font-bold text-foreground">{isLoading ? '...' : purchasedDatasets.length}</p></div><Database className="w-8 h-8 text-primary" /></div></div>
-              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Insights Generated</p><p className="text-2xl font-bold text-foreground">127</p></div><TrendingUp className="w-8 h-8 text-accent" /></div></div>
-              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Categories Explored</p><p className="text-2xl font-bold text-foreground">8</p></div><Users className="w-8 h-8 text-secondary" /></div></div>
+              {/* <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Insights Generated</p><p className="text-2xl font-bold text-foreground">127</p></div><TrendingUp className="w-8 h-8 text-accent" /></div></div>
+              <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Categories Explored</p><p className="text-2xl font-bold text-foreground">8</p></div><Users className="w-8 h-8 text-secondary" /></div></div> */}
               <div className="card-corporate"><div className="flex items-center justify-between"><div><p className="text-muted-foreground text-sm">Member Since</p><p className="text-2xl font-bold text-foreground">{new Date(currentUser.joinedDate).toLocaleDateString()}</p></div><Calendar className="w-8 h-8 text-primary" /></div></div>
             </>
           )}
@@ -178,6 +177,12 @@ const Dashboard = () => {
                         <h3 className="text-lg font-semibold text-foreground mb-2">{dataset.title}</h3>
                         <p className="text-muted-foreground mb-3">{dataset.description}</p>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                            dataset.status === 'anonymized' ? 'bg-green-500/10 text-green-500' :
+                            dataset.status === 'processing' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-red-500/10 text-red-500'
+                          }`}>
+                            {dataset.status}
+                          </span>
                           <span className="bg-accent/10 text-accent px-2 py-1 rounded-full">{dataset.category}</span>
                           <span>{dataset.views} views</span>
                           <span>${dataset.price} earned</span>
@@ -186,7 +191,7 @@ const Dashboard = () => {
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground">Uploaded</p>
                         <p className="font-medium">{new Date(dataset.createdAt).toLocaleDateString()}</p>
-                        <button onClick={() => handleToggleListing(dataset)} className="flex items-center text-sm font-medium text-primary hover:underline mt-2 ml-auto">
+                        <button onClick={() => handleToggleListing(dataset)} disabled={dataset.status !== 'anonymized'} className="flex items-center text-sm font-medium text-primary hover:underline mt-2 ml-auto disabled:opacity-50 disabled:cursor-not-allowed">
                           {dataset.isListed ? <ToggleRight className="w-5 h-5 mr-1 text-green-500"/> : <ToggleLeft className="w-5 h-5 mr-1 text-gray-400"/>}
                           {dataset.isListed ? 'Listed' : 'Unlisted'}
                         </button>
